@@ -2,6 +2,7 @@ import json
 import sys
 import os
 import urllib.request
+import platform
 
 from pybuildj.exceptions import ProjectConfigNotFound, DownloadError
 from termcolor import colored
@@ -20,6 +21,7 @@ class BuildTool:
 
 
     def __init__(self):
+        self.environment = platform.system()
         try:
             with open('project.json', 'r') as project_config:
                 self.project_data = json.load(project_config)
@@ -72,10 +74,29 @@ class BuildTool:
        depends = []
        for coordinate, filename in dependencies.items():
            depends.append(BuildTool.class_path +'/'+ filename)
-       local_class_path = ";".join(depends)
+       if platform.system() == "Windows": 
+           local_class_path = ";".join(depends)
+       elif platform.system() == "Linux":
+           local_class_path = ":".join(depends)
+       else:
+           print("Error occured")
+           exit(1)
+
+       java_dirs = self.find_java_dirs("src/")
+       java_dirs_src = [path+'/*.java' for path in java_dirs]
+       java_dirs_path = " ".join(java_dirs_src)
+       print("Path: ",java_dirs_path) 
        # print(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {BuildTool.src_dir}/{main_meth_path}.java")
-       print(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {BuildTool.src_dir}/*.java")
-       compile_status = os.system(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {BuildTool.src_dir}/{main_meth_path}.java")
+       if self.environment == "Windows":
+            print(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {java_dirs_path}")
+            command = f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {java_dirs_path}"
+       elif self.environment == "Linux":
+            print(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}: {java_dirs_path}")
+            command = f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {java_dirs_path}"
+
+
+       # compile_status = os.system(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {java_dirs_path}")
+       compile_status = os.system(command)
        if compile_status == 0:
            print(colored("Compilation complete", BuildTool.success_color))
        else:
@@ -99,3 +120,13 @@ class BuildTool:
             rmtree(BuildTool.build_dir)
         else:
             sys.exit(0)
+
+
+    def find_java_dirs(self, root_dir):
+        java_dirs = []
+
+        for dirpath, dirnames, filenames in os.walk(root_dir):
+            if any(filename.endswith('.java') for filename in filenames):
+                    java_dirs.append(dirpath)
+
+        return java_dirs

@@ -22,11 +22,14 @@ class BuildTool:
 
     def __init__(self):
         self.environment = platform.system()
+        self.current_working_directory = os.getcwd()
+        print(self.current_working_directory)
         try:
             with open('project.json', 'r') as project_config:
                 self.project_data = json.load(project_config)
 
             self.main_meth_data = self.project_data.get("main")
+            self.resources = self.project_data.get("resources")
             if not self.main_meth_data:
                 print("Specify the main class through the main key in the file my com.package.MainClass")
                 sys.exit(1)
@@ -88,11 +91,11 @@ class BuildTool:
        print("Path: ",java_dirs_path) 
        # print(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {BuildTool.src_dir}/{main_meth_path}.java")
        if self.environment == "Windows":
-            print(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {java_dirs_path}")
             command = f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {java_dirs_path}"
+            print("Compile command", command)
        elif self.environment == "Linux":
-            print(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}: {java_dirs_path}")
             command = f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {java_dirs_path}"
+            print(command)
 
 
        # compile_status = os.system(f"javac -d {BuildTool.build_dir}/classes/ -cp {local_class_path}; {java_dirs_path}")
@@ -106,7 +109,26 @@ class BuildTool:
 
 
     def run(self):
-        exec_status = os.system(f"java -cp build/classes/;lib/ {self.main_meth_data}")
+        dependencies = self.project_data.get("dependencies")
+        depends = []
+        for coordinate, filename in dependencies.items():
+           depends.append(self.current_working_directory + '/' + BuildTool.class_path +'/'+ filename)
+        if platform.system() == "Windows": 
+           local_class_path = ";".join(depends)
+        elif platform.system() == "Linux":
+           local_class_path = ":".join(depends)
+
+        print("Dependencies", depends)
+        # fetch resources
+        res_with_path = [self.current_working_directory +'/'+ r for r in self.resources]
+        res = ";".join(res_with_path)
+        command = f'java --class-path "{local_class_path};{self.current_working_directory};{res};" {self.main_meth_data}'
+        os.chdir('build/classes/')
+        print("current wd", os.getcwd())
+        print(command)
+        exec_status = os.system(command)
+        # os.system(f"java {self.main_meth_data}")
+
         
 
     def build(self):

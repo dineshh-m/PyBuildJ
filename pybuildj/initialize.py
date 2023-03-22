@@ -48,6 +48,8 @@ def get_init_string()->str:
     init_dict = {
             "name" : project_name,
             "version" : 1.0,
-            "author" : 'Dinesh'
+            "author" : 'Dinesh',
+            "dependencies": {},
+            "resources": []
             }
     return init_dict

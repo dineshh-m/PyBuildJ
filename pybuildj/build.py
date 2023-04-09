@@ -30,9 +30,12 @@ class BuildTool:
 
             self.main_meth_data = self.project_data.get("main")
             self.resources = self.project_data.get("resources")
+            self.src_dir = self.project_data.get("src");
             if not self.main_meth_data:
                 print("Specify the main class through the main key in the file my com.package.MainClass")
                 sys.exit(1)
+            if not self.src_dir:
+                src_dir = "src_dir"
         except ProjectConfigNotFound:
             print("File project.json not found make sure it is a pybuildj project\n execute init command to initialize a empty project")
             sys.exit(1)
@@ -85,7 +88,7 @@ class BuildTool:
            print("Error occured")
            exit(1)
 
-       java_dirs = self.find_java_dirs("src/")
+       java_dirs = self.find_java_dirs(self.src_dir)
        java_dirs_src = [path+'/*.java' for path in java_dirs]
        java_dirs_path = " ".join(java_dirs_src)
        print("Path: ",java_dirs_path) 
